@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="https://d3js.org/d3.v6.js"></script>
+<h1>Customer Churn Analysis Remix by Ryan Nguyen</h1>
+<p>Credits to Neal A. Akyildirim</p>
+<h3>Links (Original Story and Dataset)</h3>
+<ul>
+    <li>https://towardsdatascience.com/customer-churn-analysis-4f77cc70b3bd</li>
+    <li>https://www.kaggle.com/datasets/gauravtopre/bank-customer-churn-dataset</li>
+</ul>
+<p>"Customer Churn is one of the most important and challenging problems for businesses such as Credit Card companies, cable service providers, SASS and telecommunication companies worldwide. Even though it is not the most fun to look at, customer churn metrics can help businesses improve customer retention."</p>
+<p>Despite there being mutliple reasons towards why bank customers churn, I will be solely analyzing data in relation to the customer. 
+    In order to analyze potential correlations between customers' data with churn rate, I will be neglecting reasons revolving around the bank itself, for example poor customer service, lack of offres, and etc,
+</p>
+<img src="./images/viz1.png"> 
+<h3>Figure 1</h3>
+<p>In Figure 1 we see 
+    that male customer estimated average salary is higher than females in 
+    France, however in Germany and Spain female customers’ estimated average 
+    salary is higher. The averages are very similar each other in relation to
+    gender and its specific country therefore there is not much that average estimated 
+    salary will tell us when dealing with predicting churn rate.
+</p>
+<div id = "chart3"></div>
+<h3>Figure 2</h3>
+<p>In Figure 2, we can see that there is a lot going on and some might say that too much is going on
+    for a proper analysis to be done. But the way I look at it is whenever you click on the dots it separates
+    it based on the country and based on this we can see that for all the countries in the dataset, there is no 
+    correlation between average estimated salary and credit score.
+</p>
+
+
+<div id = "chart"></div>
+<script>
+    const margin = {top: 50, right: 50, bottom: 50, left: 50}, width = 800 - margin.left - margin.right, height = 600 - margin.top - margin.bottom; 
+    const svg = d3.select("#chart").append("svg").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom)
+    .append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
+    d3.csv("Bank_customer_churn_prediction.csv", function(d){
+        return{
+            tenure: +d['tenure'],
+            churn: +d['churn'],
+            esal: +d['estimated_salary']
+        };
+    }).then(function(data){
+        groupData = d3.rollup(data, v => {return {
+                                        esal: d3.mean(v, d => d.esal),
+                                        churn: d3.mean(v, d => d.churn)
+                                        }},
+                                        d => d.tenure)
+        console.log(groupData);
+         //add x and y axis
+        const x = d3.scaleLinear().domain([94000, d3.max(groupData, d => d[1].esal)]).range([0,width]);
+        const y = d3.scaleLinear().domain([.15, d3.max(groupData, d => d[1].churn)]).range([height,0]);
+        svg.append("g").attr("transform", `translate(0, ${height})`).call(d3.axisBottom(x));
+        svg.append("g").call(d3.axisLeft(y));
+        //adding axis label obtain from stack overflow
+        svg.append("text")
+        .attr("class", "x label")
+        .attr("text-anchor", "end")
+        .attr("x", width)
+        .attr("y", height - 6)
+        .text("Average Estimated Salary");
+        svg.append("text")
+        .attr("class", "y label")
+        .attr("text-anchor", "end")
+        .attr("y", 6)
+        .attr("dy", ".75em")
+        .attr("transform", "rotate(-90)")
+        .text("Average Churn rate (percentage)");
+        //specify the tooltip location
+        var tooltip = d3.select("#chart")
+        .append("div")
+        .style("position", "absolute")
+        .style("visibility", "hidden")
+        .style("backgroud-color", "lightgrey")
+        //add size scale
+        const size = d3.scaleLinear().domain(d3.extent(groupData, d => d[0])).range([5,25]);
+         //add color scale
+         const color = d3.scaleSequential()
+        .domain(d3.extent(groupData, d => d[0]))
+        .interpolator(d3.interpolateViridis);
+        //add dots
+        svg.append('g').selectAll("dot").data(groupData).join("circle").attr("r", 5)
+        .attr("cx", function(d) {return x(d[1].esal);})
+        .attr("cy", function(d) {return y(d[1].churn);})
+        .attr("r", d => size(d[0]))
+        .style("fill", "lightblue")
+        .on("click", function(e,d) {return console.log(d[0]);}) 
+        .on("click", function(e, d) {return d3.selectAll("circle")
+                                                .style("opacity", function (d2){
+                                                    if(d[0] == d2[0]){
+                                                        return 1;
+                                                    } else {
+                                                        return 0.1;
+                                                    }})
+                                            })
+        .on("mouseover", function(e, d) {return tooltip.style("visibility","visible")
+                                                        .html("Tenure: " + d[0]);})
+        .on("mousemove", function(){return tooltip.style("top", d3.select(this)
+                                                                .attr("cy")+"px"+1)
+                                                        .style("left", d3.select(this)
+                                                                    .attr("cx")+"px")})
+        .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+    })
+    </script>
+<h3>Figure 3</h3>
+<p>In Figure 3, the size of the dots represents the number of tenure, therefore the bigger the dot the larger number of tenure.
+    Although weak, there is a positive correlation between the average estimated salary and average churn rate. Despite the outliers, the larger dots
+    have a tendency to have a lower churn rate in comparison to the smaller dots. This is significant as it gives us insights that customers with a 
+    higher tenure have less of a probability to churn, thus we can make the assumption that people who have been with the bank for numerous years are less 
+    likely to churn.
+</p>
+
+<div id = "chart2"></div>
+<script>
+    const margin2 = {top: 50, right: 50, bottom: 50, left: 50}, width2 = 800 - margin.left - margin.right, height2 = 600 - margin.top - margin.bottom; 
+    const svg2 = d3.select("#chart2").append("svg").attr("width", width2 + margin.left + margin.right).attr("height", height2 + margin.top + margin.bottom)
+    .append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
+    
+    d3.csv("Bank_customer_churn_prediction.csv", function(d){
+        return{
+            country: d['country'],
+            churn: +d['churn']
+        };
+        d.sort((a,b) => a.value - b.value);
+    }).then(function(data){
+        groupData1 = d3.rollup(data, v => {return {
+                                        churn: d3.mean(v, d => d.churn)
+                                        }},
+                                        d => d.country)
+        console.log(groupData1);
+         //add x and y axis
+        const x = d3.scaleBand().domain(groupData1.keys()).range([0,width]).padding(0.2);
+        const y = d3.scaleLinear().domain([0, d3.max(groupData1, d => d[1].churn)]).range([height,0]);
+        svg2.append("g").attr("transform", `translate(0, ${height})`).call(d3.axisBottom(x));
+        svg2.append("g").call(d3.axisLeft(y));
+        //adding axis label obtain from stack overflow
+        svg2.append("text").attr("class", "x label").attr("text-anchor", "end").attr("x", width + 10).attr("y", height - 6)
+        .text("Country");
+        svg2.append("text").attr("class", "y label").attr("text-anchor", "end").attr("y", 5).attr("dy", ".75em").attr("transform", "rotate(-90)")
+        .text("Average Churn rate (percentage)");
+        //specify the tooltip location
+        var tooltip = d3.select("#chart2")
+        .append("div")
+        .style("position", "absolute")
+        .style("visibility", "hidden")
+        .style("backgroud-color", "lightgrey")
+        //add dots
+        svg2.append('g').selectAll(".bar").data(groupData1).join("rect").attr("class", "bar")
+        .attr("x", function(d) {return x(d[0]);})
+        .attr("y", function(d) {return y(d[1].churn);})
+        .attr("width", x.bandwidth())
+        .attr("height", function(d) { return height - y(d[1].churn); })
+        .style("fill", "pink")
+        .on("click", function(e,d) {return console.log(d[0]);}) 
+        .on("click", function(e, d) {return d3.selectAll(".bar")
+                                                .style("fill", function (d2){
+                                                    if(d[0] == d2[0]){
+                                                        return "red";
+                                                    } else {
+                                                        return "gray";
+                                                    }})
+                                            })
+        .on("mouseover", function(e, d) {return tooltip.style("visibility","visible")
+                                                        .html("AVG Churn Rate: " + d[1].churn);})
+        .on("mousemove", function(){return tooltip.style("bottom", d3.select(this)
+                                                                .attr("y")+"px" -1 )
+                                                        .style("left", d3.select(this)
+                                                                    .attr("x")+"px")})
+        .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+    })
+
+
+</script>
+<h3>Figure 4</h3>
+<p>In figure 4, we can observe that France and Spain possess similar average churn rate 
+    while Germany has almost double the percertage. This is significant as it showcases that 
+    we must take into consideration of geological variables when predicting churn rate. For example,
+    Germany could have a higher churn rate due to specific policies that they hold in comparison to the
+    other countries or etc.
+</p>
+
+<script>
+    const margin3 = {top: 50, right: 50, bottom: 50, left: 50}, width3 = 800 - margin.left - margin.right, height3 = 600 - margin.top - margin.bottom; 
+    const svg3 = d3.select("#chart3").append("svg").attr("width", width3 + margin.left + margin.right).attr("height", height3 + margin.top + margin.bottom)
+    .append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
+    d3.csv("Bank_customer_churn_prediction.csv", function(d){
+        return{
+            country: d["country"],
+            cscore: +d['credit_score'],
+            esal: +d['estimated_salary'],
+            tenure: +d['tenure'],
+            churn: +d['churn']
+        };
+    }).then(function(data){
+        console.log(data);
+        //add grouped data
+        
+        //add x and y axis
+        const x = d3.scaleLinear().domain([0, d3.max(data, d => d.esal)]).range([0,width]);
+        const y = d3.scaleLinear().domain([300, d3.max(data, d => d.cscore)]).range([height,0]);
+        svg3.append("g").attr("transform", `translate(0, ${height})`).call(d3.axisBottom(x));
+        svg3.append("g").call(d3.axisLeft(y));
+        //adding axis label obtain from stack overflow
+        svg3.append("text")
+        .attr("class", "x label")
+        .attr("text-anchor", "end")
+        .attr("x", width)
+        .attr("y", height - 6)
+        .text("Average Estimated Salary");
+        svg3.append("text")
+        .attr("class", "y label")
+        .attr("text-anchor", "end")
+        .attr("y", 6)
+        .attr("dy", ".75em")
+        .attr("transform", "rotate(-90)")
+        .text("Credit Score"); 
+        //specify the tooltip location
+        var tooltip = d3.select("#chart")
+        .append("div")
+        .style("position", "absolute")
+        .style("visibility", "hidden")
+        .style("backgroud-color", "lightgrey")
+        //add color scale
+        const color = d3.scaleSequential()
+        .domain(d3.extent(data, d => d.tenure))
+        .interpolator(d3.interpolateViridis);
+        //size scale
+        //const size = d3.scaleLinear().domain(d3.extent(data, d => d.tenure)).range([1,20]);
+        //add dots
+        svg3.append('g').selectAll("dot").data(data).join("circle").attr("r", 5)
+        //.attr("r", d => size(d.tenure))
+        .attr("cx", function(d) {return x(d.esal);})
+        .attr("cy", function(d) {return y(d.cscore);})
+        .style("fill", d => color(d.tenure))
+        .style("opacity", .5)
+        .on("click", function(e,d) {return console.log(d.country);})
+        .on("click", function(e, d) {return d3.selectAll("circle")
+                                                .style("opacity", function (d2){
+                                                    if(d.country == d2.country){
+                                                        return 1;
+                                                    } else {
+                                                        return 0.1;
+                                                    }})
+                                            })
+    })
+</script>
+<img src = "images/state.png">
+<h3>Figure 5</h3>
+<p>"When we look at the state and churn we see that California and New Jersey are the top to states with the highest churn rate."
+</p>
+<img src = "images/cust.png">
+<h3>Figure 6</h3>
+<p>
+    "Poor customer service is one of the well-known reasons for customer churn. In our case, we can see a strong positive linear relationship with the customer service call amount and churn rate."
+</p>
+<h3>Conclusion</h3>
+<p>
+    There are various factors that play into predicting customer churn in relation to bank customers
+    but from our visualizations I have determined that geography, tenure, and customer service are key factors
+    when predicting churn rate.
+</p>
